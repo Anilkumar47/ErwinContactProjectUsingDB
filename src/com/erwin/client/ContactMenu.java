@@ -1,15 +1,20 @@
 package com.erwin.client;
 
-import com.erwin.files.ReadAndWriteFiles;
+import com.erwin.connection.DatabaseConnection;
+import com.erwin.dao.DbOperations;
 import com.erwin.serviceimpl.OperationsImplementation;
 import com.ewin.Exception.ContactException;
+import java.io.FileInputStream;
+import java.io.FileNotFoundException;
+import java.io.IOException;
+import java.sql.SQLException;
+import java.util.Properties;
 import java.util.Scanner;
 
 public class ContactMenu {
 
-    static ReadAndWriteFiles rw = new ReadAndWriteFiles();
+    public static Properties p = new Properties();
 
-   
     public enum operationsMenu {
         CREATE, UPDATE, SEARCH, DELETE, DISPLAY, EXIT
     };
@@ -31,7 +36,6 @@ public class ContactMenu {
         } catch (NumberFormatException e) {
             System.out.println("Please Enter a valid number !");
             return "";
-
         }
         return inputValue;
     }
@@ -46,7 +50,6 @@ public class ContactMenu {
         }
         return "error";
     }
-  
 
     public static void menu() {
         Scanner s = new Scanner(System.in);
@@ -87,7 +90,7 @@ public class ContactMenu {
                         imp.display();
                         break;
                     case EXIT:
-                        rw.writeDataToFile();
+                        // rw.writeDataToFile();
                         System.exit(0);
                         break;
                 }
@@ -98,8 +101,20 @@ public class ContactMenu {
 
     }
 
-    public static void main(String[] args) throws ContactException {
-        rw.readDataFromFile();
+    public static void main(String[] args) throws ContactException, ClassNotFoundException, SQLException {
+
+        try {
+            FileInputStream fs = new FileInputStream("E:\\Projects\\Java Projects\\Demos\\ErwinContacts\\src\\ConfigurationFiles\\info.properties");
+            p.load(fs);
+        } catch (FileNotFoundException e) {
+            System.out.println(e);
+        } catch (IOException io) {
+            System.out.println(io);
+        }
+        DatabaseConnection.URL = p.getProperty("url");
+        DatabaseConnection.DRIVER = p.getProperty("driver");
+        DatabaseConnection.getConnection();
+        DbOperations.displayDbList();
         ContactMenu.menu();
 
     }

@@ -4,17 +4,21 @@ import com.erwin.client.ContactMenu;
 import static com.erwin.client.ContactMenu.integerValidate;
 import static com.erwin.client.ContactMenu.longValidate;
 import static com.erwin.client.ContactMenu.stringValidate;
+import com.erwin.dao.DbOperations;
 import com.erwin.module.Contact;
 import com.erwin.service.ContactOperations;
 import java.util.List;
 import java.util.Scanner;
 import java.util.concurrent.CopyOnWriteArrayList;
-import java.util.logging.Logger;
 
 public class OperationsImplementation implements ContactOperations {
 
     public enum searchOption {
         SEARCH_BY_NAME, SEARCH_BY_EMAIL, SEARCH_BY_MOBILE, GO_BACK
+    }
+
+    public enum deleteOption {
+        DELETE_BY_NAME, DELETE_BY_EMAIL, DELETE_BY_MOBILE, GO_BACK
     }
 
     public enum updateOption {
@@ -30,9 +34,9 @@ public class OperationsImplementation implements ContactOperations {
 
     @Override
     public void create() {
+
         Contact cp = new Contact();
         //inserting name
-        // boolean istrue = true;
         while (true) {
             System.out.println("To create contact Enter name of person :");
             String name = s.next();
@@ -73,6 +77,7 @@ public class OperationsImplementation implements ContactOperations {
         }
         System.out.println("Contact Created Successfully!");
         allContacts.add(cp);
+        DbOperations.insertIntoDb(cp);
         System.out.println("You Want to create more(Y/N)");
         char createMore = s.next().charAt(0);
         if (createMore == 'y' || createMore == 'Y') {
@@ -83,6 +88,75 @@ public class OperationsImplementation implements ContactOperations {
 
     @Override
     public void delete() {
+        //System.out.println("1.Search by Name \n2.Search by Email \n3.Search by Mobile\n4.Go back");
+        if (allContacts == null || allContacts.isEmpty()) {
+            System.out.println("No Data to Delete !");
+        } else {
+            int k = 1;
+            for (int i = 0; i < deleteOption.values().length; i++) {
+                System.out.println(k++ + "." + deleteOption.values()[i]);
+            }
+            String inputValue = s.next();
+            int delete = integerValidate(inputValue);
+
+            if (delete > deleteOption.values().length) {
+                System.out.println("Please enter a valid Number");
+            }
+            try {
+                deleteOption menu = deleteOption.values()[delete - 1];
+                switch (menu) {
+                    case DELETE_BY_NAME:
+                        deleteByName();
+                        break;
+                    case DELETE_BY_EMAIL:
+                        _BY_EMAIL:
+                        deleteByEmail();
+                        break;
+                    case DELETE_BY_MOBILE:
+                        deleteByMobile();
+                        break;
+                    case GO_BACK: {
+                        ContactMenu.menu();
+                        break;
+                    }
+                }
+            } catch (Exception e) {
+                // System.out.println("please enter the valid number!");
+                delete();
+            }
+        }
+
+    }
+
+    private void deleteByName() {
+        boolean notFound = false;
+        if (allContacts == null || allContacts.isEmpty()) {
+            System.out.println("No Data Found to Delete !");
+        } else {
+            System.out.println("Enter the Name that you want to Delete!");
+            String nameToDelete = s.next();
+            String validateName = stringValidate(nameToDelete);
+            if (!validateName.equalsIgnoreCase("error")) {
+                for (Contact c : allContacts) {
+                    if (nameToDelete.equals(c.getName())) {
+                        System.out.println("Are you sure to delete(Y/N) " + nameToDelete);
+                        char reCheck = s.next().charAt(0);
+                        if (reCheck == 'y' || reCheck == 'Y') {
+                            allContacts.remove(c);
+                            DbOperations.deleteData(c);
+                        }
+                        notFound = false;
+                    }
+                }
+                if (!notFound) {
+                    System.out.println("No data found with this Name");
+                }
+            }
+        }
+    }
+
+    public void deleteByMobile() {
+        boolean notFound = false;
         if (allContacts == null || allContacts.isEmpty()) {
             System.out.println("No Data Found to Delete !");
         } else {
@@ -90,17 +164,47 @@ public class OperationsImplementation implements ContactOperations {
             String mobileToDelete = s.next();
             int lengthOfMobileNumber = mobileToDelete.length();
             String validateMobile = longValidate(mobileToDelete);
-            allContacts.forEach((Contact i) -> {
-                if (mobileToDelete.equals(i.getMobile())) {
+            for (Contact c : allContacts) {
+                if (mobileToDelete.equals(c.getMobile())) {
                     System.out.println("Are you sure to delete(Y/N) " + mobileToDelete);
                     char reCheck = s.next().charAt(0);
                     if (reCheck == 'y' || reCheck == 'Y') {
-                        allContacts.remove(i);
+                        allContacts.remove(c);
+                        DbOperations.deleteData(c);
                     }
-                } else {
-                    System.out.println("Not data with this Mobile number");
+                    notFound = true;
                 }
-            });
+            }
+            if (!notFound) {
+                System.out.println("No data found with this Name");
+            }
+        }
+    }
+
+    private void deleteByEmail() {
+        boolean notFound = false;
+        if (allContacts == null || allContacts.isEmpty()) {
+            System.out.println("No Data Found to Delete !");
+        } else {
+            System.out.println("Enter the Email that you want to Delete!");
+            String emailToDelete = s.next();
+            String validateName = stringValidate(emailToDelete);
+            if (!validateName.equalsIgnoreCase("error")) {
+                for (Contact c : allContacts) {
+                    if (emailToDelete.equals(c.getEmail())) {
+                        System.out.println("Are you sure to delete(Y/N) " + emailToDelete);
+                        char reCheck = s.next().charAt(0);
+                        if (reCheck == 'y' || reCheck == 'Y') {
+                            allContacts.remove(c);
+                            DbOperations.deleteData(c);
+                        }
+                        notFound = true;
+                    }
+                }
+                if (!notFound) {
+                    System.out.println("No data found with this Email");
+                }
+            }
         }
     }
 
@@ -208,13 +312,19 @@ public class OperationsImplementation implements ContactOperations {
                 updateOption menu = updateOption.values()[update - 1];
                 switch (menu) {
                     case UPDATE_BY_NAME:
-                        updateByName();
+                        System.out.println("Enter the name that you want to update");
+                        String name = s.next();
+                        allContacts.stream().filter(i -> i.getName().equalsIgnoreCase(name)).forEach(i -> updateMenu(i));
                         break;
                     case UPDATE_BY_EMAIL:
-                        updateByEmail();
+                        System.out.println("Enter the Email that you want to update");
+                        String email = s.next();
+                        allContacts.stream().filter(i -> i.getEmail().equalsIgnoreCase(email)).forEach(i -> updateMenu(i));
                         break;
                     case UPDATE_BY_MOBILE:
-                        updateByMobile();
+                        System.out.println("Enter the Mobile that you want to update");
+                        String mobile = s.next();
+                        allContacts.stream().filter(i -> i.getMobile().equalsIgnoreCase(mobile)).forEach(i -> updateMenu(i));
                         break;
                     case GO_BACK: {
                         ContactMenu.menu();
@@ -229,28 +339,8 @@ public class OperationsImplementation implements ContactOperations {
 
     }
 
-    private void updateByName() {
-        System.out.println("Enter the name that you want to update");
-        String name = s.next();
-        updateMenu(name, "name");
-
-    }
-
-    private void updateByEmail() {
-        System.out.println("Enter the Email that you want to update");
-        String email = s.next();
-        updateMenu(email, "email");
-    }
-
-    private void updateByMobile() {
-        System.out.println("Enter the Mobile that you want to update");
-        String mobile = s.next();
-        updateMenu(mobile, "mobile");
-
-    }
-
-    private void updateMenu(String value, String type) {
-        System.out.println("Choose the option that you want you update with " + type + " :" + value);
+    private void updateMenu(Contact c) {
+        System.out.println("Choose the option that you want you update");
         System.out.println("1.Name\n2.Email\n3.Mobile");
         String inputValue = s.next();
         int optionToUpdate = integerValidate(inputValue);
@@ -260,13 +350,13 @@ public class OperationsImplementation implements ContactOperations {
         try {
             switch (optionToUpdate) {
                 case 1:
-                    updateName(value, type);
+                    updateName(c.getName());
                     break;
                 case 2:
-                    updateEmail(value, type);
+                    updateEmail(c.getEmail());
                     break;
                 case 3:
-                    updateMobile(value, type);
+                    updateMobile(c.getMobile());
                     break;
                 case 4: {
                     ContactMenu.menu();
@@ -278,46 +368,30 @@ public class OperationsImplementation implements ContactOperations {
         }
     }
 
-    private void updateName(String name, String type) {
+    private void updateName(String name) {
         System.out.println("Enter New Name that you want update.");
         String NewName = s.next();
-        if (type.equalsIgnoreCase("name")) {
-            allContacts.stream().filter(i -> i.getName().equalsIgnoreCase(name)).forEach(i -> i.setName(NewName));
-        } else if (type.equalsIgnoreCase("email")) {
-            allContacts.stream().filter(i -> i.getEmail().equalsIgnoreCase(name)).forEach(i -> i.setName(NewName));
-        } else {
-            allContacts.stream().filter(i -> i.getMobile().equalsIgnoreCase(name)).forEach(i -> i.setName(NewName));
-        }
+        allContacts.stream().filter(i -> i.getName().equalsIgnoreCase(name)).forEach(i -> i.setName(NewName));
+        DbOperations.updateDbData(name, NewName,"name");
         System.out.println("Your Name is Updated Successfully!");
         display();
-
     }
 
-    private void updateEmail(String name, String type) {
+    private void updateEmail(String email) {
         System.out.println("Enter New Email that you want update.");
         String NewEmail = s.next();
-        if (type.equalsIgnoreCase("name")) {
-            allContacts.stream().filter(i -> i.getName().equalsIgnoreCase(name)).forEach(i -> i.setEmail(NewEmail));
-        } else if (type.equalsIgnoreCase("email")) {
-            allContacts.stream().filter(i -> i.getEmail().equalsIgnoreCase(name)).forEach(i -> i.setEmail(NewEmail));
-        } else {
-            allContacts.stream().filter(i -> i.getMobile().equalsIgnoreCase(name)).forEach(i -> i.setEmail(NewEmail));
-        }
+        allContacts.stream().filter(i -> i.getEmail().equalsIgnoreCase(email)).forEach(i -> i.setEmail(NewEmail));
+        DbOperations.updateDbData(email, NewEmail,"email");
         System.out.println("Your Email is Updated Successfully!");
         display();
 
     }
 
-    private void updateMobile(String name, String type) {
+    private void updateMobile(String mobile) {
         System.out.println("Enter New Mobile Number that you want update.");
         String NewMobile = s.next();
-        if (type.equalsIgnoreCase("name")) {
-            allContacts.stream().filter(i -> i.getName().equalsIgnoreCase(name)).forEach(i -> i.setMobile(NewMobile));
-        } else if (type.equalsIgnoreCase("email")) {
-            allContacts.stream().filter(i -> i.getEmail().equalsIgnoreCase(name)).forEach(i -> i.setMobile(NewMobile));
-        } else {
-            allContacts.stream().filter(i -> i.getMobile().equalsIgnoreCase(name)).forEach(i -> i.setMobile(NewMobile));
-        }
+        allContacts.stream().filter(i -> i.getMobile().equalsIgnoreCase(mobile)).forEach(i -> i.setMobile(NewMobile));
+        DbOperations.updateDbData(mobile, NewMobile,"mobile");
         System.out.println("Your Mobile Number is Updated Successfully!");
         display();
 
@@ -325,7 +399,7 @@ public class OperationsImplementation implements ContactOperations {
 
     private void displayHeading() {
         System.out.println("---------------------------------------------------------");
-        System.out.println("Name \t\t Email \t\t\t Mobile");
+        System.out.println("Name \t\t\t\t Email \t\t\t\t\t Mobile");
         System.out.println("---------------------------------------------------------");
     }
 
